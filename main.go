@@ -95,7 +95,8 @@ func main() {
 	defer masterPool.Close()
 
 	//slavePool = simpleredis.NewConnectionPoolHost("redis-slave:6379")
-	slave := strings.Join(getRedisSlaveAddr(sentinel, cluster), ":")
+	//slave := strings.Join(getRedisSlaveAddr(sentinel, cluster), ":")
+	slave := getRedisSlaveAddr(sentinel, cluster)
 	if password != "" {
 		slave = password + "@" + slave
 	}
@@ -148,44 +149,44 @@ func getRedisMasterAddr(sentinelAddr, clusterName string) []string {
 	return redisMasterPair[:2]
 }
 
-func getRedisSlaveAddr(sentinelAddr, clusterName string) []string {
+func getRedisSlaveAddr(sentinelAddr, clusterName string) string {
 	if len(sentinelAddr) == 0 {
 		//log.Printf("Redis sentinelAddr is nil.")
 		//return "", ""
-		return []string{"", ""}
+		return ""
 	}
 
 	conn, err := redis.DialTimeout("tcp", sentinelAddr, time.Second*10, time.Second*10, time.Second*10)
 	if err != nil {
 		//log.Printf("redis dial timeout(\"tcp\", \"%s\", %d) error(%v)", sentinelAddr, time.Second, err)
 		//return "", ""
-		return []string{"", ""}
+		return ""
 	}
 	defer conn.Close()
 
 	infos, err := conn.Do("SENTINEL", "slaves", clusterName)
-	fmt.Println("SENTINEL slaves: ", infos, err)
+	//fmt.Println("SENTINEL slaves: ", infos, err)
 	salveInfos, err := redis.Values(infos, err)
-	fmt.Println("SENTINEL slaves: ", salveInfos, err)
+	//fmt.Println("SENTINEL slaves: ", salveInfos, err)
 	if len(salveInfos) < 1 {
-		return []string{"", ""}
+		return ""
 	}
-	for _, info := range salveInfos {
-		a, b := redis.Strings(info, err)
-		fmt.Println("a, b: ", a, b)
-	}
+	//for _, info := range salveInfos {
+	//	a, b := redis.Strings(info, err)
+		//fmt.Println("a, b: ", a, b)
+	//}
 	redisSlavePair, err := redis.Strings(salveInfos[0], err)
-	fmt.Println("SENTINEL slaves: ", redisSlavePair, err)
+	//fmt.Println("SENTINEL slaves: ", redisSlavePair, err)
 	if err != nil {
 		//log.Printf("conn.Do(\"SENTINEL\", \"get-master-addr-by-name\", \"%s\") error(%v)", clusterName, err)
 		//return "", ""
-		return []string{"", ""}
+		return ""
 	}
 
 	if len(redisSlavePair) < 2 {
 		//return "", ""
-		return []string{"", ""}
+		return ""
 	}
 	//return redisSlavePair[0], redisSlavePair[1]
-	return redisSlavePair[:2]
+	return redisSlavePair[1]
 }
