@@ -163,7 +163,11 @@ func getRedisSlaveAddr(sentinelAddr, clusterName string) []string {
 	}
 	defer conn.Close()
 
-	redisSlavePair, err := redis.Strings(conn.Do("SENTINEL", "slaves", clusterName))
+	infos, err := conn.Do("SENTINEL", "slaves", clusterName)
+	fmt.Println("SENTINEL slaves: ", infos, err)
+	salveInfos, err := redis.Values(infos, err)
+	fmt.Println("SENTINEL slaves: ", salveInfos, err)
+	redisSlavePair, err := redis.Strings(salveInfos, err)
 	fmt.Println("SENTINEL slaves: ", redisSlavePair, err)
 	if err != nil {
 		//log.Printf("conn.Do(\"SENTINEL\", \"get-master-addr-by-name\", \"%s\") error(%v)", clusterName, err)
