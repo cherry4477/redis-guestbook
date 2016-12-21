@@ -21,10 +21,12 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
 	"github.com/xyproto/simpleredis"
+	"github.com/garyburd/redigo/redis"
 )
 
 var (
@@ -74,9 +76,17 @@ func HandleError(result interface{}, err error) (r interface{}) {
 }
 
 func main() {
-	masterPool = simpleredis.NewConnectionPoolHost("redis-master:6379")
+	sentinel := os.Getenv(os.Getenv("EnvName_SentinelAddr"))
+	cluster := os.Getenv(os.Getenv("EnvName_ClusterName"))
+	
+	//masterPool = simpleredis.NewConnectionPoolHost("redis-master:6379")
+	master := strings.Join(getRedisMasterAddr(sentinel, cluster), ":")
+	masterPool = simpleredis.NewConnectionPoolHost(master)
 	defer masterPool.Close()
-	slavePool = simpleredis.NewConnectionPoolHost("redis-slave:6379")
+
+	//slavePool = simpleredis.NewConnectionPoolHost("redis-slave:6379")
+	slave := strings.Join(getRedisSlaveAddr(sentinel, cluster), ":")
+	slavePool = simpleredis.NewConnectionPoolHost(slave)
 	defer slavePool.Close()
 
 	r := mux.NewRouter()
@@ -88,4 +98,68 @@ func main() {
 	n := negroni.Classic()
 	n.UseHandler(r)
 	n.Run(":3000")
+}
+
+//=================================
+
+
+
+func getRedisMasterAddr(sentinelAddr, clusterName string) []string {
+	if len(sentinelAddr) == 0 {
+		//log.Printf("Redis sentinelAddr is nil.")
+		//return "", ""
+		return []string{"", ""}
+	}
+
+	conn, err := redis.DialTimeout("tcp", sentinelAddr, time.Second*10, time.Second*10, time.Second*10)
+	if err != nil {
+		//log.Printf("redis dial timeout(\"tcp\", \"%s\", %d) error(%v)", sentinelAddr, time.Second, err)
+		//return "", ""
+		return []string{"", ""}
+	}
+	defer conn.Close()
+
+	redisMasterPair, err := redis.Strings(conn.Do("SENTINEL", "get-master-addr-by-name", clusterName))
+	if err != nil {
+		//log.Printf("conn.Do(\"SENTINEL\", \"get-master-addr-by-name\", \"%s\") error(%v)", clusterName, err)
+		//return "", ""
+		return []string{"", ""}
+	}
+
+	if len(redisMasterPair) != 2 {
+		//return "", ""
+		return []string{"", ""}
+	}
+	//return redisMasterPair[0], redisMasterPair[1]
+	return redisMasterPair[:2]
+}
+
+func getRedisSlaveAddr(sentinelAddr, clusterName string) []string {
+	if len(sentinelAddr) == 0 {
+		//log.Printf("Redis sentinelAddr is nil.")
+		//return "", ""
+		return []string{"", ""}
+	}
+
+	conn, err := redis.DialTimeout("tcp", sentinelAddr, time.Second*10, time.Second*10, time.Second*10)
+	if err != nil {
+		//log.Printf("redis dial timeout(\"tcp\", \"%s\", %d) error(%v)", sentinelAddr, time.Second, err)
+		//return "", ""
+		return []string{"", ""}
+	}
+	defer conn.Close()
+
+	redisSlavePair, err := redis.Strings(conn.Do("SENTINEL", "slaves", clusterName))
+	if err != nil {
+		//log.Printf("conn.Do(\"SENTINEL\", \"get-master-addr-by-name\", \"%s\") error(%v)", clusterName, err)
+		//return "", ""
+		return []string{"", ""}
+	}
+
+	if len(redisSlavePair) < 2 {
+		//return "", ""
+		return []string{"", ""}
+	}
+	//return redisSlavePair[0], redisSlavePair[1]
+	return redisSlavePair[:2]
 }
