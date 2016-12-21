@@ -167,7 +167,14 @@ func getRedisSlaveAddr(sentinelAddr, clusterName string) []string {
 	fmt.Println("SENTINEL slaves: ", infos, err)
 	salveInfos, err := redis.Values(infos, err)
 	fmt.Println("SENTINEL slaves: ", salveInfos, err)
-	redisSlavePair, err := redis.Strings(salveInfos, err)
+	if len(salveInfos) < 1 {
+		return []string{"", ""}
+	}
+	for _, info := range salveInfos {
+		a, b := redis.Strings(info, err)
+		fmt.Println("a, b: ", a, b)
+	}
+	redisSlavePair, err := redis.Strings(salveInfos[0], err)
 	fmt.Println("SENTINEL slaves: ", redisSlavePair, err)
 	if err != nil {
 		//log.Printf("conn.Do(\"SENTINEL\", \"get-master-addr-by-name\", \"%s\") error(%v)", clusterName, err)
