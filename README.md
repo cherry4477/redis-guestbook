@@ -17,7 +17,6 @@ demo演示了往master写，从slave读。
 例子：
   
   * EnvName_Password=BSI_REDIS_REDIS_PASSWORD
-  * EnvName_SentinelAddr=BSI_REDIS_REDIS_NAME
   * EnvName_SentinelHost=BSI_REDIS_REDIS_HOST
   * EnvName_SentinelPort=BSI_REDIS_REDIS_PORT
   * EnvName_ClusterName=BSI_REDIS_REDIS_NAME
