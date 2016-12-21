@@ -78,14 +78,22 @@ func HandleError(result interface{}, err error) (r interface{}) {
 func main() {
 	sentinel := os.Getenv(os.Getenv("EnvName_SentinelAddr"))
 	cluster := os.Getenv(os.Getenv("EnvName_ClusterName"))
+	password := os.Getenv(os.Getenv("EnvName_Password"))
+	password = strings.TrimSpace(password)
 	
 	//masterPool = simpleredis.NewConnectionPoolHost("redis-master:6379")
 	master := strings.Join(getRedisMasterAddr(sentinel, cluster), ":")
+	if password != "" {
+		master = password + "@" + master
+	}
 	masterPool = simpleredis.NewConnectionPoolHost(master)
 	defer masterPool.Close()
 
 	//slavePool = simpleredis.NewConnectionPoolHost("redis-slave:6379")
 	slave := strings.Join(getRedisSlaveAddr(sentinel, cluster), ":")
+	if password != "" {
+		slave = password + "@" + slave
+	}
 	slavePool = simpleredis.NewConnectionPoolHost(slave)
 	defer slavePool.Close()
 
