@@ -27,6 +27,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/xyproto/simpleredis"
 	"github.com/garyburd/redigo/redis"
+	"fmt"
 )
 
 var (
@@ -76,16 +77,20 @@ func HandleError(result interface{}, err error) (r interface{}) {
 }
 
 func main() {
-	sentinel := os.Getenv(os.Getenv("EnvName_SentinelAddr"))
+	sentinel := os.Getenv(os.Getenv("EnvName_SentinelHost")) + ":" + os.Getenv(os.Getenv("EnvName_SentinelPort"))
 	cluster := os.Getenv(os.Getenv("EnvName_ClusterName"))
 	password := os.Getenv(os.Getenv("EnvName_Password"))
 	password = strings.TrimSpace(password)
+	fmt.Println("sentinel =", sentinel)
+	fmt.Println("cluster =", cluster)
+	fmt.Println("password =", password)
 	
 	//masterPool = simpleredis.NewConnectionPoolHost("redis-master:6379")
 	master := strings.Join(getRedisMasterAddr(sentinel, cluster), ":")
 	if password != "" {
 		master = password + "@" + master
 	}
+	fmt.Println("master =", master)
 	masterPool = simpleredis.NewConnectionPoolHost(master)
 	defer masterPool.Close()
 
@@ -94,6 +99,7 @@ func main() {
 	if password != "" {
 		slave = password + "@" + slave
 	}
+	fmt.Println("slave =", slave)
 	slavePool = simpleredis.NewConnectionPoolHost(slave)
 	defer slavePool.Close()
 
